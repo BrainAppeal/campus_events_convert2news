@@ -1,0 +1,26 @@
+# ==============================================
+# Persistence object mapping configuration
+# ==============================================
+config.tx_extbase.persistence.classes {
+
+	BrainAppeal\CampusEventsConvert2News\Domain\Model\ConvertConfiguration {
+		subclasses {
+			1 = BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration
+		}
+	}
+
+	BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration {
+		mapping {
+			recordType = 1
+			tableName = tx_campuseventsconnector_domain_model_convertconfiguration
+		}
+	}
+
+
+	BrainAppeal\CampusEventsConvert2News\Domain\Model\News {
+		mapping {
+			tableName = tx_news_domain_model_news
+		}
+	}
+
+}

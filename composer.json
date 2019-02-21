@@ -1,0 +1,43 @@
+{
+    "name": "brainappeal/campus_events_convert2news",
+    "type": "typo3-cms-extension",
+    "description" : "Campus Events converter for news",
+    "license": [
+        "GPL-2.0-only"
+    ],
+     "keywords": [
+        "TYPO3",
+        "extension",
+        "event",
+        "events",
+        "veranstaltung",
+        "eventtool"
+     ],
+    "homepage": "https://www.campus-events.com/",
+    "authors": [
+        {
+            "name": "Brain Appeal GmbH",
+            "email": "info@brain-appeal.com",
+            "homepage": "https://www.brain-appeal.com"
+        }
+    ],
+    "require": {
+        "typo3/cms-core": "~7.6.0|~8.7.0|^9.3.0",
+        "brainappeal/campus_events_connector": "^0.9.0",
+        "georgringer/news": "^6.3.0|^7.0.5|dev-master@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "BrainAppeal\\CampusEventsConvert2News\\": "Classes"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BrainAppeal\\CampusEventsConvert2News\\Tests\\": "Tests"
+        }
+    },
+    "replace": {
+        "campus_events_convert2news": "self.version",
+        "typo3-ter/campus_events_convert2news": "self.version"
+    }
+}

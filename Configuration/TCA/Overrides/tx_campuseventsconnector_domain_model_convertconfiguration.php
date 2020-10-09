@@ -59,8 +59,7 @@ $additionalFields = [
 
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTCAcolumns(
     'tx_campuseventsconnector_domain_model_convertconfiguration',
-    $additionalFields,
-    true
+    $additionalFields
 );
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addFieldsToPalette(
     'tx_campuseventsconnector_domain_model_convertconfiguration',

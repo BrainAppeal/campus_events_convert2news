@@ -13,7 +13,8 @@
 
 namespace BrainAppeal\CampusEventsConvert2News\Converter;
 
-use GeorgRinger\News\Service\SlugService;
+use TYPO3\CMS\Core\DataHandling\SlugHelper;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class Event2NewsConverter extends \BrainAppeal\CampusEventsConnector\Converter\AbstractEventToObjectConverter
 {
@@ -113,8 +114,9 @@ class Event2NewsConverter extends \BrainAppeal\CampusEventsConnector\Converter\A
         $object->setExternalurl($event->getUrl());
 
         if (method_exists($object, 'setPathSegment')) {
-            $slugService = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(SlugService::class);
-            $slug = $slugService->generateSlug((string)$event->getName());
+            /** @var SlugHelper $slugService */
+            $slugService = GeneralUtility::makeInstance(SlugHelper::class, 'tx_news_domain_model_news', 'path_segment', $GLOBALS['TCA']['tx_news_domain_model_news']['columns']['path_segment']['config']);
+            $slug = $slugService->sanitize((string)$event->getName());
             $object->setPathSegment($slug);
         }
 

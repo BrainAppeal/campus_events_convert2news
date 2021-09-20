@@ -39,5 +39,10 @@
     "replace": {
         "brainappeal/campus_events_convert2news": "self.version",
         "typo3-ter/campus_events_convert2news": "self.version"
+    },
+    "extra": {
+	"typo3/cms": {
+	    "extension-key": "campus_events_convert2news"
+	}    
     }
 }

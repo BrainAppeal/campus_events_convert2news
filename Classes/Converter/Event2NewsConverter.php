@@ -55,7 +55,7 @@ class Event2NewsConverter extends \BrainAppeal\CampusEventsConnector\Converter\A
      */
     protected function getMatchingEventsByConfiguration($eventRepository, $configuration)
     {
-        return $eventRepository->findAllByPid($configuration->getPid());
+        return $eventRepository->findAllByConvertConfiguration($configuration);
     }
 
     /**

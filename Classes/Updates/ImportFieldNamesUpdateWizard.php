@@ -7,10 +7,15 @@ use BrainAppeal\CampusEventsConnector\Updates\ImportFieldNamesUpdateWizard as Ba
 
 class ImportFieldNamesUpdateWizard extends BaseImportFieldNamesUpdateWizard
 {
-
-    public function __construct()
+    /**
+     * @return \BrainAppeal\CampusEventsConnector\Service\UpdateService
+     */
+    protected function getUpdateService()
     {
-        $this->updateService = GeneralUtility::makeInstance(UpdateService::class);
+        if (null === $this->updateService) {
+            $this->updateService = GeneralUtility::makeInstance(UpdateService::class);
+        }
+        return $this->updateService;
     }
 
 }

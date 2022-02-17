@@ -22,9 +22,9 @@
         }
     ],
     "require": {
-        "typo3/cms-core": "~7.6.0|~8.7.0|~9.5.0|~10.4.0",
-        "brainappeal/campus_events_connector": "^1.0.1",
-        "georgringer/news": "^6.3.0|^7.0.5|^8.4.0|dev-master@dev"
+        "typo3/cms-core": "~8.7.0|~9.5.0|~10.4.0",
+        "brainappeal/campus_events_connector": "^1.0.1|^2.0.0",
+        "georgringer/news": "^6.3.0|^7.0.5|^8.4.0|^9.1.0|dev-master@dev"
     },
     "autoload": {
         "psr-4": {
@@ -37,7 +37,6 @@
         }
     },
     "replace": {
-        "brainappeal/campus_events_convert2news": "self.version",
         "typo3-ter/campus_events_convert2news": "self.version"
     },
     "extra": {

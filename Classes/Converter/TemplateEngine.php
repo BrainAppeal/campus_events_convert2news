@@ -24,7 +24,7 @@ class TemplateEngine extends \BrainAppeal\CampusEventsConnector\Utility\Template
     protected function getTemplateRootPaths($configuration, $templateName)
     {
         return [
-            0 => 'EXT:campus_events_convert2news/Resources/Private/Layouts/',
+            0 => 'EXT:campus_events_convert2news/Resources/Private/Templates/',
             1 => $configuration->getTemplatePath(),
         ];
     }

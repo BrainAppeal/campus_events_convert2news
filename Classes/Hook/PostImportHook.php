@@ -14,48 +14,18 @@
 namespace BrainAppeal\CampusEventsConvert2News\Hook;
 
 
-class PostImportHook
-{
+use BrainAppeal\CampusEventsConnector\Importer\PostImportHookInterface;
 
-    /**
-     * @return \BrainAppeal\CampusEventsConnector\Converter\EventConverterInterface
-     */
-    private function getConverter()
+// campus_events_connector > 2.x
+if (class_exists(\BrainAppeal\CampusEventsConnector\Importer\PostImportHookInterface::class)) {
+
+    class PostImportHook extends AbstractPostImportHook implements PostImportHookInterface
     {
-        /** @var \BrainAppeal\CampusEventsConnector\Converter\EventConverterInterface $converter */
-        $converter = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\BrainAppeal\CampusEventsConvert2News\Converter\Event2NewsConverter::class);
-
-        return $converter;
     }
 
-    /**
-     * @param int $pid
-     * @return \BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration[]
-     */
-    private function findConfigurationsByPid($pid)
+} else {
+    class PostImportHook extends AbstractPostImportHook
     {
-        $objectManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\CMS\Extbase\Object\ObjectManager');
-        /** @var \BrainAppeal\CampusEventsConvert2News\Domain\Repository\Convert2NewsConfigurationRepository $configurationRepository */
-        $configurationRepository = $objectManager->get(\BrainAppeal\CampusEventsConvert2News\Domain\Repository\Convert2NewsConfigurationRepository::class);
-
-        return $configurationRepository->findActiveByPid($pid);
     }
 
-    /**
-     * @param int $pid
-     * @return bool
-     */
-    public function postImport($pid) {
-        $configurations = $this->findConfigurationsByPid($pid);
-
-        if (count($configurations)) {
-            $converter = $this->getConverter();
-
-            foreach ($configurations as $configuration) {
-                $converter->run($configuration);
-            }
-        }
-
-        return true;
-    }
 }

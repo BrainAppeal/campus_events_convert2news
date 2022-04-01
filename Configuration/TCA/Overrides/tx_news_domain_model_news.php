@@ -19,7 +19,7 @@ defined('TYPO3_MODE') or die();
 $importColumns = [
     'ce_import_source' => [
         'exclude' => true,
-        'label' => 'LLL:EXT:campus_events_connector/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_category.name',
+        'label' => 'LLL:EXT:campus_events_connector/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_event.ce_import_source',
         'config' => [
             'type' => 'input',
             'size' => 30,
@@ -28,7 +28,7 @@ $importColumns = [
     ],
     'ce_import_id' => [
         'exclude' => true,
-        'label' => 'LLL:EXT:campus_events_connector/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_category.name',
+        'label' => 'LLL:EXT:campus_events_connector/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_event.ce_import_id',
         'config' => [
             'type' => 'input',
             'size' => 30,
@@ -37,11 +37,12 @@ $importColumns = [
     ],
     'ce_imported_at' => [
         'exclude' => true,
-        'label' => 'LLL:EXT:campus_events_connector/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_category.name',
+        'label' => 'LLL:EXT:campus_events_connector/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_event.ce_imported_at',
         'config' => [
             'type' => 'input',
-            'size' => 30,
-            'eval' => 'trim'
+            'renderType' => 'inputDateTime',
+            'size' => 13,
+            'eval' => 'datetime',
         ],
     ],
 ];

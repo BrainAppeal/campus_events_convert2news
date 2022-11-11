@@ -26,7 +26,7 @@ $EM_CONF[$_EXTKEY] = [
         'depends' => [
             'typo3' => '10.4.13-11.5.99',
             'campus_events_connector' => '3.0.0-3.999.99',
-            'news' => '8.6.0-9.99.99',
+            'news' => '8.6.0-10.99.99',
         ],
         'conflicts' => [],
         'suggests' => [

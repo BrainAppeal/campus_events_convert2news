@@ -42,7 +42,7 @@ abstract class AbstractPostImportHook
 
     /**
      * @param int $pid
-     * @return \BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration[]
+     * @return \TYPO3\CMS\Extbase\Persistence\QueryResultInterface|object[]|\BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration[]
      */
     private function findConfigurationsByPid($pid)
     {

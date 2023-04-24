@@ -13,6 +13,16 @@
 
 namespace BrainAppeal\CampusEventsConvert2News\Converter;
 
+use BrainAppeal\CampusEventsConnector\Domain\Model\ConvertConfiguration;
+use BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration;
+use Doctrine\DBAL\Exception;
+use TYPO3\CMS\Core\Authentication\CommandLineUserAuthentication;
+use TYPO3\CMS\Core\Core\Bootstrap;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Routing\SiteMatcher;
+use TYPO3\CMS\Core\Site\Entity\NullSite;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference as FileReferenceModel;
 use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
@@ -86,6 +96,58 @@ class Event2NewsConverter extends \BrainAppeal\CampusEventsConnector\Converter\A
         return $this->objectManager;
     }
 
+    protected function setLanguageBasedOnConfiguration(ConvertConfiguration $configuration)
+    {
+        // Use labels for default language of current site; needed for news bodytext labels
+        if (0 < $targetPid = (int) $configuration->getPid()) {
+            $siteMatcher = GeneralUtility::makeInstance(SiteMatcher::class);
+            if (!isset($GLOBALS['BE_USER'])) {
+                Bootstrap::initializeBackendUser(CommandLineUserAuthentication::class);
+                Bootstrap::initializeBackendAuthentication();
+            }
+            try {
+                $site = $siteMatcher->matchByPageId($targetPid);
+                if (!($site instanceof NullSite)) {
+
+                    /** @var LanguageServiceFactory $languageServiceFactory */
+                    $languageServiceFactory = GeneralUtility::makeInstance(LanguageServiceFactory::class);
+                    if ($configuration instanceof Convert2NewsConfiguration) {
+                        $languageUid = $configuration->getSysLanguageUid();
+                        $siteLanguage = $site->getLanguageById($languageUid);
+                        if (null === $siteLanguage) {
+                            $siteLanguage = $site->getDefaultLanguage();
+                        }
+                    } else {
+                        $siteLanguage = $site->getDefaultLanguage();
+                    }
+                    $GLOBALS['BE_USER']->user['lang'] = $siteLanguage->getTypo3Language();
+                    $GLOBALS['LANG'] = $languageServiceFactory->createFromSiteLanguage($siteLanguage);
+                }
+            } catch (SiteNotFoundException $e) {
+                unset($e);
+            }
+        }
+    }
+
+    /**
+     * @param ConvertConfiguration $configuration
+     */
+    public function run($configuration)
+    {
+        $this->setLanguageBasedOnConfiguration($configuration);
+        parent::run($configuration);
+        /** @var ConnectionPool $connectionPool */
+        $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
+        $connection = $connectionPool->getConnectionForTable('tx_news_domain_model_news');
+        try {
+            $connection->executeStatement('UPDATE tx_news_domain_model_news n, tx_news_domain_model_news o
+    SET o.path_segment = CONCAT(o.path_segment, \'-\', o.uid)
+    WHERE n.deleted = 0 AND n.path_segment = o.path_segment AND n.uid > o.uid');
+        } catch (Exception $e) {
+            unset($e);
+        }
+    }
+
     /**
      * @param FileReferenceModel $fileReference
      * @return \GeorgRinger\News\Domain\Model\FileReference
@@ -127,7 +189,7 @@ class Event2NewsConverter extends \BrainAppeal\CampusEventsConnector\Converter\A
      * @param \BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration $configuration
      * @api Use this method to individualize your object
      */
-    protected function individualizeObjectByEvent(&$object, $event, $configuration)
+    protected function individualizeObjectByEvent($object, $event, $configuration)
     {
         $templateEngine = $this->getTemplateEngine();
         $object->setType($configuration->getTxnewsType());

@@ -40,4 +40,14 @@ class Convert2NewsConfiguration extends \BrainAppeal\CampusEventsConnector\Domai
         $this->txnewsType = $txnewsType;
     }
 
+    /**
+     * Get sys language
+     *
+     * @return int
+     */
+    public function getSysLanguageUid(): int
+    {
+        return $this->_languageUid;
+    }
+
 }

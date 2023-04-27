@@ -11,7 +11,7 @@
  * @link      https://www.campus-events.com/
  */
 
-defined('TYPO3_MODE') or die();
+defined('TYPO3') or die();
 
 /**
  * Add extra fiels

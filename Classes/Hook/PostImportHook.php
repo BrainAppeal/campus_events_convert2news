@@ -16,16 +16,6 @@ namespace BrainAppeal\CampusEventsConvert2News\Hook;
 
 use BrainAppeal\CampusEventsConnector\Importer\PostImportHookInterface;
 
-// campus_events_connector > 2.x
-if (class_exists(\BrainAppeal\CampusEventsConnector\Importer\PostImportHookInterface::class)) {
-
-    class PostImportHook extends AbstractPostImportHook implements PostImportHookInterface
-    {
-    }
-
-} else {
-    class PostImportHook extends AbstractPostImportHook
-    {
-    }
-
+class PostImportHook extends AbstractPostImportHook implements PostImportHookInterface
+{
 }

@@ -11,6 +11,6 @@
  * @link      https://www.campus-events.com/
  */
 
-defined('TYPO3_MODE') || die('Access denied.');
+defined('TYPO3') or die();
 
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addStaticFile('campus_events_convert2news', 'Configuration/TypoScript', 'CampusEvents Converter2News');

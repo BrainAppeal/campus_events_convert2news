@@ -1,0 +1,15 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  BrainAppeal\CampusEventsConvert2News\:
+    resource: '../Classes/*'
+    exclude:
+      - '../Classes/Domain/Model/*'
+      - '../Classes/**/Exception.php'
+
+  BrainAppeal\CampusEventsConvert2News\Converter\Event2NewsConverter:
+    public: true
+    #shared: true

@@ -13,8 +13,11 @@
 
 namespace BrainAppeal\CampusEventsConvert2News\Converter;
 
+use BrainAppeal\CampusEventsConnector\Converter\AbstractEventToObjectConverter;
 use BrainAppeal\CampusEventsConnector\Domain\Model\ConvertConfiguration;
+use BrainAppeal\CampusEventsConnector\Domain\Repository\EventRepository;
 use BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration;
+use BrainAppeal\CampusEventsConvert2News\Domain\Repository\NewsRepository;
 use Doctrine\DBAL\Exception;
 use TYPO3\CMS\Core\Authentication\CommandLineUserAuthentication;
 use TYPO3\CMS\Core\Core\Bootstrap;
@@ -25,75 +28,44 @@ use TYPO3\CMS\Core\Routing\SiteMatcher;
 use TYPO3\CMS\Core\Site\Entity\NullSite;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference as FileReferenceModel;
+use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
 use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
 
-class Event2NewsConverter extends \BrainAppeal\CampusEventsConnector\Converter\AbstractEventToObjectConverter
+class Event2NewsConverter extends AbstractEventToObjectConverter
 {
     /**
      * @var TemplateEngine
      */
-    private $templateEngine;
-
-    /**
-     * @var \TYPO3\CMS\Extbase\Object\ObjectManager
-     */
-    private $objectManager;
+    private TemplateEngine $templateEngine;
 
     /**
      * @var PersistenceManagerInterface
      */
-    protected $persistenceManager;
+    protected PersistenceManagerInterface $persistenceManager;
 
-    /**
-     * @param PersistenceManagerInterface $persistenceManager
-     */
-    public function injectPersistenceManager(PersistenceManagerInterface $persistenceManager)
+    public function __construct(
+        DataMapper $dataMapper,
+        EventRepository $eventRepository,
+        PersistenceManagerInterface $persistenceManager,
+        NewsRepository $objectRepository,
+        TemplateEngine $templateEngine)
     {
+        parent::__construct($dataMapper, $eventRepository);
         $this->persistenceManager = $persistenceManager;
+        $this->objectRepository = $objectRepository;
+        $this->templateEngine = $templateEngine;
     }
 
     /**
-     * @return TemplateEngine
-     */
-    private function getTemplateEngine()
-    {
-        if (null === $this->templateEngine) {
-            $this->templateEngine = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(TemplateEngine::class);
-        }
-
-        return $this->templateEngine;
-    }
-
-    /**
-     * @return string
-     */
-    protected function getObjectRepositoryClass()
-    {
-       return \BrainAppeal\CampusEventsConvert2News\Domain\Repository\NewsRepository::class;
-    }
-
-    /**
-     * @param \BrainAppeal\CampusEventsConnector\Domain\Repository\EventRepository $eventRepository
+     * @param EventRepository $eventRepository
      * @param \BrainAppeal\CampusEventsConnector\Domain\Model\ConvertConfiguration $configuration
      * @return \BrainAppeal\CampusEventsConnector\Domain\Model\Event[]
      */
-    protected function getMatchingEventsByConfiguration($eventRepository, $configuration)
+    protected function getMatchingEventsByConfiguration(EventRepository $eventRepository, ConvertConfiguration $configuration)
     {
         // Disable PID restriction, because we want to load all events from ALL pages
         // and then move the events to the configured page id
         return $eventRepository->findAllByConvertConfiguration($configuration, false);
-    }
-
-    /**
-     * @return \TYPO3\CMS\Extbase\Object\ObjectManager
-     */
-    private function getObjectManager()
-    {
-        if (null === $this->objectManager) {
-            $this->objectManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
-        }
-
-        return $this->objectManager;
     }
 
     protected function setLanguageBasedOnConfiguration(ConvertConfiguration $configuration)
@@ -154,10 +126,8 @@ class Event2NewsConverter extends \BrainAppeal\CampusEventsConnector\Converter\A
      */
     private function getFalObject(FileReferenceModel $fileReference)
     {
-        $objectManager = $this->getObjectManager();
-
         /** @var \GeorgRinger\News\Domain\Model\FileReference $media */
-        $media = $objectManager->get(\GeorgRinger\News\Domain\Model\FileReference::class);
+        $media = GeneralUtility::makeInstance(\GeorgRinger\News\Domain\Model\FileReference::class);
         $media->setFileUid($fileReference->getOriginalResource()->getOriginalFile()->getUid());
 
         return $media;
@@ -191,12 +161,11 @@ class Event2NewsConverter extends \BrainAppeal\CampusEventsConnector\Converter\A
      */
     protected function individualizeObjectByEvent($object, $event, $configuration)
     {
-        $templateEngine = $this->getTemplateEngine();
         $object->setType($configuration->getTxnewsType());
 
         $eventName = (string)$event->getName();
         $object->setTitle($eventName);
-        $bodytext = $templateEngine->getFromTemplate($configuration, 'Bodytext', ['event' => $event]);
+        $bodytext = $this->templateEngine->getFromTemplate($configuration, 'Bodytext', ['event' => $event]);
         // Replace multiple consecutive whitespaces with a single whitespace
         $bodytext = preg_replace('/ {2,}/', ' ', $bodytext);
         $object->setBodytext($bodytext);
@@ -370,7 +339,7 @@ class Event2NewsConverter extends \BrainAppeal\CampusEventsConnector\Converter\A
      * @param string $eventName
      * @return string|null
      */
-    private function createSlugForName($eventName)
+    private function createSlugForName(string $eventName)
     {
         $slug = null;
         if ($eventName) {

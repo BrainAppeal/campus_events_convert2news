@@ -21,11 +21,11 @@ $EM_CONF[$_EXTKEY] = [
     'author_email' => 'info@brain-appeal.com',
     'state' => 'stable',
     'clearCacheOnLoad' => 1,
-    'version' => '3.0.3',
+    'version' => '4.0.0',
     'constraints' => [
         'depends' => [
-            'typo3' => '10.4.13-11.5.99',
-            'campus_events_connector' => '3.0.7-3.999.99',
+            'typo3' => '11.5.26-12.4.99',
+            'campus_events_connector' => '3.0.7-4.999.99',
             'news' => '8.6.0-11.99.99',
         ],
         'conflicts' => [],

@@ -1,5 +1,10 @@
 # CHANGELOG.md
 
+## 4.0.0 (2023-04-27)
+
+### Added
+- compatibility with TYPO3 12 LTS (12.4.0)
+
 ## 3.0.3 (2023-04-13)
 
 ### Added

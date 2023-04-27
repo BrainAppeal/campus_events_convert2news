@@ -19,23 +19,12 @@ abstract class AbstractPostImportHook
 {
 
     /**
-     * @return \TYPO3\CMS\Extbase\Object\ObjectManager
-     */
-    private function getObjectManager()
-    {
-        /** @var \TYPO3\CMS\Extbase\Object\ObjectManager $objectManager */
-        $objectManager = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\ObjectManager::class);
-
-        return $objectManager;
-    }
-
-    /**
      * @return \BrainAppeal\CampusEventsConnector\Converter\EventConverterInterface
      */
     private function getConverter()
     {
         /** @var \BrainAppeal\CampusEventsConnector\Converter\EventConverterInterface $converter */
-        $converter = $this->getObjectManager()->get(\BrainAppeal\CampusEventsConvert2News\Converter\Event2NewsConverter::class);
+        $converter = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\BrainAppeal\CampusEventsConvert2News\Converter\Event2NewsConverter::class);
 
         return $converter;
     }
@@ -47,7 +36,7 @@ abstract class AbstractPostImportHook
     private function findConfigurationsByPid($pid)
     {
         /** @var \BrainAppeal\CampusEventsConvert2News\Domain\Repository\Convert2NewsConfigurationRepository $configurationRepository */
-        $configurationRepository = $this->getObjectManager()->get(\BrainAppeal\CampusEventsConvert2News\Domain\Repository\Convert2NewsConfigurationRepository::class);
+        $configurationRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\BrainAppeal\CampusEventsConvert2News\Domain\Repository\Convert2NewsConfigurationRepository::class);
 
         return $configurationRepository->findActiveByPid($pid);
     }

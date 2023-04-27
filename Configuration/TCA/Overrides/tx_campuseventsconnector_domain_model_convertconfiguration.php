@@ -11,16 +11,13 @@
  * @link      https://www.campus-events.com/
  */
 
-defined('TYPO3_MODE') or die();
+defined('TYPO3') or die();
 
 $convertconfiguration = [
     'ctrl' => [
         'typeicon_classes' => [
             1 => 'ext-convertconfiguration-type-news',
         ],
-    ],
-    'interface' => [
-        'showRecordFieldList' => 'sys_language_uid, l10n_parent, l10n_diffsource, hidden, type, target_pid, txnews_type, template_path, target_groups, filter_categories',
     ],
     'types' => [
         1 => ['showitem' => 'sys_language_uid, l10n_parent, l10n_diffsource, hidden, type, target_pid, txnews_type, template_path, target_groups, filter_categories, --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:tabs.access, starttime, endtime'],

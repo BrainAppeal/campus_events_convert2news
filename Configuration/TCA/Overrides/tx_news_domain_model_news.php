@@ -12,39 +12,9 @@
  */
 
 defined('TYPO3') or die();
-
 /**
- * Add extra fiels
+ * Add extra fields
  */
-$importColumns = [
-    'ce_import_source' => [
-        'exclude' => true,
-        'label' => 'LLL:EXT:campus_events_connector/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_event.ce_import_source',
-        'config' => [
-            'type' => 'input',
-            'size' => 30,
-            'eval' => 'trim'
-        ],
-    ],
-    'ce_import_id' => [
-        'exclude' => true,
-        'label' => 'LLL:EXT:campus_events_connector/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_event.ce_import_id',
-        'config' => [
-            'type' => 'input',
-            'size' => 30,
-            'eval' => 'trim'
-        ],
-    ],
-    'ce_imported_at' => [
-        'exclude' => true,
-        'label' => 'LLL:EXT:campus_events_connector/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_event.ce_imported_at',
-        'config' => [
-            'type' => 'input',
-            'renderType' => 'inputDateTime',
-            'size' => 13,
-            'eval' => 'datetime',
-        ],
-    ],
-];
 
+$importColumns = \BrainAppeal\CampusEventsConnector\Utility\TCAUtility::getImportFieldConfiguration();
 \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addTCAcolumns('tx_news_domain_model_news', $importColumns);

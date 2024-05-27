@@ -33,7 +33,7 @@ abstract class AbstractPostImportHook
      * @param int $pid
      * @return \TYPO3\CMS\Extbase\Persistence\QueryResultInterface|object[]|\BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration[]
      */
-    private function findConfigurationsByPid($pid)
+    private function findConfigurationsByPid(int $pid)
     {
         /** @var \BrainAppeal\CampusEventsConvert2News\Domain\Repository\Convert2NewsConfigurationRepository $configurationRepository */
         $configurationRepository = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\BrainAppeal\CampusEventsConvert2News\Domain\Repository\Convert2NewsConfigurationRepository::class);
@@ -45,12 +45,12 @@ abstract class AbstractPostImportHook
      * @param int $pid The page id where the events are stored
      * @return bool
      */
-    public function postImport($pid)
+    public function postImport(int $pid): bool
     {
         $configurations = $this->findConfigurationsByPid($pid);
         if (count($configurations)) {
-            $converter = $this->getConverter();
             /** @var \BrainAppeal\CampusEventsConvert2News\Converter\Event2NewsConverter $converter */
+            $converter = $this->getConverter();
             foreach ($configurations as $configuration) {
                 $converter->run($configuration);
             }

@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## 4.0.1 (2024-05-27)
+
+### Fixed:
+- remove TCA migration messages for TYPO3 12.4
+- fix news icon in convert configuration 
+
 ## 4.0.0 (2023-04-27)
 
 ### Added

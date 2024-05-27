@@ -13,30 +13,24 @@
 
 defined('TYPO3') or die();
 
-$convertconfiguration = [
-    'ctrl' => [
-        'typeicon_classes' => [
-            1 => 'ext-convertconfiguration-type-news',
-        ],
-    ],
-    'types' => [
-        1 => ['showitem' => 'sys_language_uid, l10n_parent, l10n_diffsource, hidden, type, target_pid, txnews_type, template_path, target_groups, filter_categories, --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:tabs.access, starttime, endtime'],
-    ],
-    'columns' => [
-        'type' => [
-            'config' => [
-                'items' => [
-                    1 => ['LLL:EXT:campus_events_convert2news/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_convertconfiguration.convert2news', 1, 'ext-convertconfiguration-type-news']
-                ]
-            ]
-        ]
-    ],
-];
+$versionInformation = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Information\Typo3Version::class);
+$isLegacyVersion = $versionInformation->getMajorVersion() < 12;
 
-$GLOBALS['TCA']['tx_campuseventsconnector_domain_model_convertconfiguration'] = array_replace_recursive(
-    $GLOBALS['TCA']['tx_campuseventsconnector_domain_model_convertconfiguration'], $convertconfiguration
-);
-
+$GLOBALS['TCA']['tx_campuseventsconnector_domain_model_convertconfiguration']['ctrl']['typeicon_classes'][1] = 'ext-convertconfiguration-type-news';
+$GLOBALS['TCA']['tx_campuseventsconnector_domain_model_convertconfiguration']['types'][1] = ['showitem' => 'type, target_pid, txnews_type, template_path, target_groups, filter_categories,
+        --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:language,
+            --palette--;;paletteLanguage,
+        --div--;LLL:EXT:frontend/Resources/Private/Language/locallang_ttc.xlf:tabs.access,
+            --palette--;;access'];
+if ($isLegacyVersion) {
+    $GLOBALS['TCA']['tx_campuseventsconnector_domain_model_convertconfiguration']['columns']['type']['config']['items'][1] = ['LLL:EXT:campus_events_convert2news/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_convertconfiguration.convert2news', 1, 'EXT:news/Resources/Public/Icons/news_domain_model_news.svg'];
+} else {
+    $GLOBALS['TCA']['tx_campuseventsconnector_domain_model_convertconfiguration']['columns']['type']['config']['items'][1] = [
+        'label' => 'LLL:EXT:campus_events_convert2news/Resources/Private/Language/locallang_db.xlf:tx_campuseventsconnector_domain_model_convertconfiguration.convert2news',
+        'value' => 1,
+        'icon' => 'EXT:news/Resources/Public/Icons/news_domain_model_news.svg'
+    ];
+}
 
 $additionalFields = [
     'txnews_type' => [
@@ -45,10 +39,21 @@ $additionalFields = [
         'config' => [
             'type' => 'select',
             'renderType' => 'selectSingle',
-            'items' => [
+            'items' => $isLegacyVersion ? [
                 ['LLL:EXT:news/Resources/Private/Language/locallang_db.xlf:tx_news_domain_model_news.type.I.0', 0, 'EXT:news/Resources/Public/Icons/news_domain_model_news.svg'],
 //                ['LLL:EXT:news/Resources/Private/Language/locallang_db.xlf:tx_news_domain_model_news.type.I.1', 1, 'EXT:news/Resources/Public/Icons/news_domain_model_news_internal.svg'],
                 ['LLL:EXT:news/Resources/Private/Language/locallang_db.xlf:tx_news_domain_model_news.type.I.2', 2, 'EXT:news/Resources/Public/Icons/news_domain_model_news_external.svg'],
+            ] : [
+                [
+                    'label' => 'LLL:EXT:news/Resources/Private/Language/locallang_db.xlf:tx_news_domain_model_news.type.I.0',
+                    'value' => 0,
+                    'icon' => 'EXT:news/Resources/Public/Icons/news_domain_model_news.svg'
+                ],
+                [
+                    'label' => 'LLL:EXT:news/Resources/Private/Language/locallang_db.xlf:tx_news_domain_model_news.type.I.2',
+                    'value' => 2,
+                    'icon' => 'EXT:news/Resources/Public/Icons/news_domain_model_news_external.svg'
+                ],
             ],
         ],
     ],

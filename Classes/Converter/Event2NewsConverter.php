@@ -22,6 +22,7 @@ use Doctrine\DBAL\Exception;
 use TYPO3\CMS\Core\Authentication\CommandLineUserAuthentication;
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\DataHandling\SlugHelper;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Routing\SiteMatcher;
@@ -220,8 +221,9 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
      * Add the event attachments to news attachments
      * @param \GeorgRinger\News\Domain\Model\News $object
      * @param \BrainAppeal\CampusEventsConnector\Domain\Model\Event $event
+     * @retur void
      */
-    protected function addNewsAttachments($object, $event)
+    protected function addNewsAttachments($object, $event): void
     {
         /** @var FileReferenceModel[] $mapImportFileReferences */
         $mapImportFileReferences = [];
@@ -257,8 +259,9 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
      * Add the event images to news media
      * @param \GeorgRinger\News\Domain\Model\News $object
      * @param \BrainAppeal\CampusEventsConnector\Domain\Model\Event $event
+     * @return void
      */
-    protected function addNewsMedia($object, $event)
+    protected function addNewsMedia($object, $event): void
     {
         /** @var FileReferenceModel[] $mapImportFileReferences */
         $mapImportFileReferences = [];
@@ -304,8 +307,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
             $originalFile = $existingMedia->getOriginalResource()->getOriginalFile();
             $origFileUid = $originalFile->getUid();
             // Remove file reference if either the file is not referenced in the imported files or the file is a duplicate
-            if (null !== $this->persistenceManager
-                && ($originalFile->isMissing()
+            if (($originalFile->isMissing()
                     || !$originalFile->getStorage()->hasFile($originalFile->getIdentifier())
                     || !in_array($origFileUid, $mapImportFileUidList, true)
                     || in_array($origFileUid, $existingFileUidList, true))) {
@@ -320,18 +322,17 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
 
     /**
      * @param \BrainAppeal\CampusEventsConnector\Domain\Model\Event $event
-     * @return array
+     * @return array<string, mixed>
      */
-    protected function getAdditionDataHandlerValues($event)
+    protected function getAdditionDataHandlerValues($event): array
     {
         $eventName = (string) $event->getName();
-        $data = [
+        return [
             'title' => $eventName,
             'teaser' => (string) $event->getShortDescription(),
             'externalurl' => (string) $event->getUrl(),
             'path_segment' => (string) $this->createSlugForName($eventName)
         ];
-        return $data;
     }
 
     /**
@@ -339,19 +340,21 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
      * @param string $eventName
      * @return string|null
      */
-    private function createSlugForName(string $eventName)
+    private function createSlugForName(string $eventName): ?string
     {
         $slug = null;
         if ($eventName) {
-            if (class_exists(\TYPO3\CMS\Core\DataHandling\SlugHelper::class)) {
+            if (class_exists(SlugHelper::class)) {
                 $slugConfig = $GLOBALS['TCA']['tx_news_domain_model_news']['columns']['path_segment']['config'];
-                /** @var \TYPO3\CMS\Core\DataHandling\SlugHelper $slugService */
-                $slugService = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\SlugHelper::class, 'tx_news_domain_model_news', 'path_segment', $slugConfig);
+                /** @var SlugHelper $slugService */
+                $slugService = GeneralUtility::makeInstance(SlugHelper::class, 'tx_news_domain_model_news', 'path_segment', $slugConfig);
                 $slug = $slugService->sanitize($eventName);
             } elseif (class_exists(\GeorgRinger\News\Service\SlugService::class)) {
                 /** @var \GeorgRinger\News\Service\SlugService $slugService */
                 $slugService = GeneralUtility::makeInstance(\GeorgRinger\News\Service\SlugService::class);
-                $slug = $slugService->generateSlug($eventName);
+                if (method_exists($slugService, 'generateSlug')) {
+                    $slug = $slugService->generateSlug($eventName);
+                }
             }
         }
         return $slug;

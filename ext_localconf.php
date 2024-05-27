@@ -24,8 +24,9 @@ call_user_func(
         $versionInformation = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Information\Typo3Version::class);
         if ($versionInformation->getMajorVersion() < 12) {
             /** @var \TYPO3\CMS\Extbase\Object\Container\Container $objectRegistry */
-            $objectRegistry = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\Container\Container::class);
-            $objectRegistry->registerImplementation(\BrainAppeal\CampusEventsConnector\Domain\Model\ConvertConfiguration::class, \BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration::class);
+            // @extensionScannerIgnoreLine
+            $objectRegistry = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\Container\Container::class);/** @phpstan-ignore-line */
+            $objectRegistry->registerImplementation(\BrainAppeal\CampusEventsConnector\Domain\Model\ConvertConfiguration::class, \BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration::class);/** @phpstan-ignore-line */
         }
         // typo3-dev/fb05/typo3conf/ext/news/Documentation/DeveloperManual/ExtendNews/ProxyClassGenerator/Index.rst
         $GLOBALS['TYPO3_CONF_VARS']['EXT']['news']['classes']['Domain/Model/News'][] = $extKey;

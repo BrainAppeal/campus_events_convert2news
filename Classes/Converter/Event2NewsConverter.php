@@ -19,11 +19,13 @@ use BrainAppeal\CampusEventsConnector\Domain\Repository\EventRepository;
 use BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration;
 use BrainAppeal\CampusEventsConvert2News\Domain\Repository\NewsRepository;
 use Doctrine\DBAL\Exception;
+use GeorgRinger\News\Domain\Model\FileReference as NewsFileReferenceAlias;
 use TYPO3\CMS\Core\Authentication\CommandLineUserAuthentication;
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\DataHandling\SlugHelper;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Routing\SiteMatcher;
 use TYPO3\CMS\Core\Site\Entity\NullSite;
@@ -43,6 +45,11 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
      * @var PersistenceManagerInterface
      */
     protected PersistenceManagerInterface $persistenceManager;
+
+    /**
+     * @var LanguageService|bool
+     */
+    protected $resetGlobalsLang = false;
 
     public function __construct(
         DataMapper $dataMapper,
@@ -94,6 +101,10 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
                         $siteLanguage = $site->getDefaultLanguage();
                     }
                     $GLOBALS['BE_USER']->user['lang'] = $siteLanguage->getTypo3Language();
+                    $this->resetGlobalsLang = true;
+                    if (isset($GLOBALS['LANG'])) {
+                        $this->resetGlobalsLang = $GLOBALS['LANG'];
+                    }
                     $GLOBALS['LANG'] = $languageServiceFactory->createFromSiteLanguage($siteLanguage);
                 }
             } catch (SiteNotFoundException $e) {
@@ -119,16 +130,22 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
         } catch (Exception $e) {
             unset($e);
         }
+        // Fix custom language service initialized
+        if ($this->resetGlobalsLang === true) {
+            unset($GLOBALS['LANG']);
+        } elseif ($this->resetGlobalsLang instanceof LanguageService) {
+            $GLOBALS['LANG'] = $this->resetGlobalsLang;
+        }
     }
 
     /**
      * @param FileReferenceModel $fileReference
-     * @return \GeorgRinger\News\Domain\Model\FileReference
+     * @return NewsFileReferenceAlias
      */
-    private function getFalObject(FileReferenceModel $fileReference)
+    private function getFalObject(FileReferenceModel $fileReference): NewsFileReferenceAlias
     {
-        /** @var \GeorgRinger\News\Domain\Model\FileReference $media */
-        $media = GeneralUtility::makeInstance(\GeorgRinger\News\Domain\Model\FileReference::class);
+        /** @var NewsFileReferenceAlias $media */
+        $media = GeneralUtility::makeInstance(NewsFileReferenceAlias::class);
         $media->setFileUid($fileReference->getOriginalResource()->getOriginalFile()->getUid());
 
         return $media;
@@ -138,7 +155,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
      * @param string $html
      * @return string
      */
-    private function html2text($html)
+    private function html2text(string $html): string
     {
         return html_entity_decode(strip_tags($html));
     }
@@ -227,7 +244,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     {
         /** @var FileReferenceModel[] $mapImportFileReferences */
         $mapImportFileReferences = [];
-        /** @var \GeorgRinger\News\Domain\Model\FileReference $attachment */
+        /** @var NewsFileReferenceAlias $attachment */
         foreach ($event->getAttachments() as $attachment) {
             /** @var FileReferenceModel $attachment */
             $origFileUid = $attachment->getOriginalResource()->getOriginalFile()->getUid();
@@ -265,7 +282,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     {
         /** @var FileReferenceModel[] $mapImportFileReferences */
         $mapImportFileReferences = [];
-        /** @var \GeorgRinger\News\Domain\Model\FileReference $image */
+        /** @var NewsFileReferenceAlias $image */
         foreach ($event->getImages() as $image) {
             /** @var FileReferenceModel $image */
             $origFileUid = $image->getOriginalResource()->getOriginalFile()->getUid();
@@ -296,7 +313,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     /**
      * Returns the list of file uid's that already are referenced by the current object
      * Additionally filters out duplicates (that were already stored before)
-     * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage|\GeorgRinger\News\Domain\Model\FileReference[] $fileReferences
+     * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage|NewsFileReferenceAlias[] $fileReferences
      * @param array|int[] $mapImportFileUidList File UID list of import file references
      * @return array|int[] $existingFileUidList
      */

@@ -1,5 +1,10 @@
 # CHANGELOG.md
 
+## 4.0.2 (2024-06-05)
+
+### Fixed:
+- manual execution of import causes LinkButton exception in TYPO3 11.5
+
 ## 4.0.1 (2024-05-27)
 
 ### Fixed:

@@ -1,5 +1,10 @@
 # CHANGELOG.md
 
+## 4.0.3 (2024-06-11)
+
+### Fixed:
+- prevent exceptions for invalid file references
+
 ## 4.0.2 (2024-06-05)
 
 ### Fixed:

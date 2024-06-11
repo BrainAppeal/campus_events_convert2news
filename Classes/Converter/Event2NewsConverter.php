@@ -27,6 +27,7 @@ use TYPO3\CMS\Core\DataHandling\SlugHelper;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
+use TYPO3\CMS\Core\Resource\Exception\ResourceDoesNotExistException;
 use TYPO3\CMS\Core\Routing\SiteMatcher;
 use TYPO3\CMS\Core\Site\Entity\NullSite;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -140,15 +141,38 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
 
     /**
      * @param FileReferenceModel $fileReference
-     * @return NewsFileReferenceAlias
+     * @return ?NewsFileReferenceAlias
      */
-    private function getFalObject(FileReferenceModel $fileReference): NewsFileReferenceAlias
+    private function getFalObject(FileReferenceModel $fileReference): ?NewsFileReferenceAlias
     {
-        /** @var NewsFileReferenceAlias $media */
-        $media = GeneralUtility::makeInstance(NewsFileReferenceAlias::class);
-        $media->setFileUid($fileReference->getOriginalResource()->getOriginalFile()->getUid());
+        if ($originalFileUid = $this->getUidOfValidOriginalFile($fileReference)) {
+            /** @var NewsFileReferenceAlias $media */
+            $media = GeneralUtility::makeInstance(NewsFileReferenceAlias::class);
+            $media->setFileUid($originalFileUid);
+            return $media;
+        }
+        return null;
 
-        return $media;
+    }
+
+    /**
+     * Returns the uid of the original file for the given file reference, if the file exists
+     * @param FileReferenceModel $fileReference
+     * @return int
+     * @throws ResourceDoesNotExistException
+     */
+    protected function getUidOfValidOriginalFile(FileReferenceModel $fileReference): int
+    {
+        $originalFile = $fileReference->getOriginalResource()->getOriginalFile();
+        if (!$originalFile->isMissing()
+            && (null !== $storage = $originalFile->getStorage())
+            && $storage->hasFile($originalFile->getIdentifier())) {
+            return $originalFile->getUid();
+        }
+        throw new ResourceDoesNotExistException(
+            'No xfile found for given UID: "' . $originalFile->getUid() . '"',
+            1718106519
+        );
     }
 
     /**
@@ -244,30 +268,35 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     {
         /** @var FileReferenceModel[] $mapImportFileReferences */
         $mapImportFileReferences = [];
-        /** @var NewsFileReferenceAlias $attachment */
         foreach ($event->getAttachments() as $attachment) {
             /** @var FileReferenceModel $attachment */
-            $origFileUid = $attachment->getOriginalResource()->getOriginalFile()->getUid();
-            $mapImportFileReferences[$origFileUid] = $attachment;
+            try {
+                $originalFileUid = $this->getUidOfValidOriginalFile($attachment);
+                $mapImportFileReferences[$originalFileUid] = $attachment;
+            } catch (ResourceDoesNotExistException $e) {
+                unset($e);
+            }
         }
         // New event model
         if (method_exists($event, 'getEventAttachments')) {
             /** @var \BrainAppeal\CampusEventsConnector\Domain\Model\EventAttachment $eventAttachment */
             foreach ($event->getEventAttachments() as $eventAttachment) {
-                if (($fileReference = $eventAttachment->getAttachmentFile()) instanceof FileReferenceModel) {
-                    $originalFile = $fileReference->getOriginalResource()->getOriginalFile();
-                    if (!$originalFile->isMissing() && $originalFile->getStorage()->hasFile($originalFile->getIdentifier())) {
-                        $origFileUid = $originalFile->getUid();
-                        $mapImportFileReferences[$origFileUid] = $fileReference;
+                try {
+                    if ((($fileReference = $eventAttachment->getAttachmentFile()) instanceof FileReferenceModel)
+                        && $originalFileUid = $this->getUidOfValidOriginalFile($fileReference)) {
+                        $mapImportFileReferences[$originalFileUid] = $fileReference;
                     }
+                } catch (ResourceDoesNotExistException $e) {
+                    unset($e);
                 }
             }
         }
         $mapImportFileUidList = array_keys($mapImportFileReferences);
         $existingFileUids = $this->processExistingFileReferences($object->getFalRelatedFiles(), $mapImportFileUidList);
         foreach ($mapImportFileReferences as $origFileUid => $fileReference) {
-            if (!in_array($origFileUid, $existingFileUids, false)) {
-                $object->addFalRelatedFile($this->getFalObject($fileReference));
+            if (!in_array($origFileUid, $existingFileUids, false)
+                && null !== $falReferenceModel = $this->getFalObject($fileReference)) {
+                $object->addFalRelatedFile($falReferenceModel);
             }
         }
     }
@@ -282,30 +311,35 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     {
         /** @var FileReferenceModel[] $mapImportFileReferences */
         $mapImportFileReferences = [];
-        /** @var NewsFileReferenceAlias $image */
         foreach ($event->getImages() as $image) {
             /** @var FileReferenceModel $image */
-            $origFileUid = $image->getOriginalResource()->getOriginalFile()->getUid();
-            $mapImportFileReferences[$origFileUid] = $image;
+            try {
+                $originalFileUid = $this->getUidOfValidOriginalFile($image);
+                $mapImportFileReferences[$originalFileUid] = $image;
+            } catch (ResourceDoesNotExistException $e) {
+                unset($e);
+            }
         }
         // New event model
         if (method_exists($event, 'getEventImages')) {
             /** @var \BrainAppeal\CampusEventsConnector\Domain\Model\EventImage $eventImage */
             foreach ($event->getEventImages() as $eventImage) {
-                if (($fileReference = $eventImage->getImageFile()) instanceof FileReferenceModel) {
-                    $originalFile = $fileReference->getOriginalResource()->getOriginalFile();
-                    if (!$originalFile->isMissing() && $originalFile->getStorage()->hasFile($originalFile->getIdentifier())) {
-                        $origFileUid = $originalFile->getUid();
-                        $mapImportFileReferences[$origFileUid] = $fileReference;
+                try {
+                    if ((($fileReference = $eventImage->getImageFile()) instanceof FileReferenceModel)
+                        && $originalFileUid = $this->getUidOfValidOriginalFile($fileReference)) {
+                        $mapImportFileReferences[$originalFileUid] = $fileReference;
                     }
+                } catch (ResourceDoesNotExistException $e) {
+                    unset($e);
                 }
             }
         }
         $mapImportFileUidList = array_keys($mapImportFileReferences);
         $existingFileUids = $this->processExistingFileReferences($object->getFalMedia(), $mapImportFileUidList);
         foreach ($mapImportFileReferences as $origFileUid => $fileReference) {
-            if (!in_array($origFileUid, $existingFileUids, false)) {
-                $object->addFalMedia($this->getFalObject($fileReference));
+            if (!in_array($origFileUid, $existingFileUids, false)
+                && null !== $falReferenceModel = $this->getFalObject($fileReference)) {
+                $object->addFalMedia($falReferenceModel);
             }
         }
     }
@@ -313,7 +347,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     /**
      * Returns the list of file uid's that already are referenced by the current object
      * Additionally filters out duplicates (that were already stored before)
-     * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage|NewsFileReferenceAlias[] $fileReferences
+     * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage|FileReferenceModel[] $fileReferences
      * @param array|int[] $mapImportFileUidList File UID list of import file references
      * @return array|int[] $existingFileUidList
      */
@@ -321,17 +355,19 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     {
         $existingFileUidList = [];
         foreach ($fileReferences as $existingMedia) {
-            $originalFile = $existingMedia->getOriginalResource()->getOriginalFile();
-            $origFileUid = $originalFile->getUid();
-            // Remove file reference if either the file is not referenced in the imported files or the file is a duplicate
-            if (($originalFile->isMissing()
-                    || !$originalFile->getStorage()->hasFile($originalFile->getIdentifier())
-                    || !in_array($origFileUid, $mapImportFileUidList, true)
-                    || in_array($origFileUid, $existingFileUidList, true))) {
+            try {
+                $originalFileUid = $this->getUidOfValidOriginalFile($existingMedia);
+                // Remove file reference if either the file is not referenced in the imported files or the file is a duplicate
+                if ((!in_array($originalFileUid, $mapImportFileUidList, true)
+                    || in_array($originalFileUid, $existingFileUidList, true))) {
+                    $fileReferences->detach($existingMedia);
+                    $this->persistenceManager->remove($existingMedia);
+                } else {
+                    $existingFileUidList[] = $originalFileUid;
+                }
+            } catch (ResourceDoesNotExistException $e) {
                 $fileReferences->detach($existingMedia);
                 $this->persistenceManager->remove($existingMedia);
-            } else {
-                $existingFileUidList[] = $origFileUid;
             }
         }
         return $existingFileUidList;

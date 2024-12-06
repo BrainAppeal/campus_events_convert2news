@@ -1,5 +1,10 @@
 # CHANGELOG.md
 
+## 4.0.4 (2024-12-06)
+
+### Added:
+- Compatibility with EXT:news >= 12.0
+
 ## 4.0.3 (2024-06-11)
 
 ### Fixed:
@@ -24,7 +29,7 @@
 ## 3.0.3 (2023-04-13)
 
 ### Added
-- Compatiblity with EXT:news >= 11.0
+- Compatibility with EXT:news >= 11.0
 
 ### Changed:
 - code cleanup

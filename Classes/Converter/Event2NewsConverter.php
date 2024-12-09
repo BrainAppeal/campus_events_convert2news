@@ -37,15 +37,7 @@ use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
 
 class Event2NewsConverter extends AbstractEventToObjectConverter
 {
-    /**
-     * @var TemplateEngine
-     */
-    private TemplateEngine $templateEngine;
-
-    /**
-     * @var PersistenceManagerInterface
-     */
-    protected PersistenceManagerInterface $persistenceManager;
+    private const NEWS_TYPE_EXTERNAL = 2;
 
     /**
      * @var LanguageService|bool
@@ -55,14 +47,12 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     public function __construct(
         DataMapper $dataMapper,
         EventRepository $eventRepository,
-        PersistenceManagerInterface $persistenceManager,
+        protected PersistenceManagerInterface $persistenceManager,
         NewsRepository $objectRepository,
-        TemplateEngine $templateEngine)
+        private readonly TemplateEngine $templateEngine)
     {
         parent::__construct($dataMapper, $eventRepository);
-        $this->persistenceManager = $persistenceManager;
         $this->objectRepository = $objectRepository;
-        $this->templateEngine = $templateEngine;
     }
 
     /**
@@ -94,7 +84,12 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
                     $languageServiceFactory = GeneralUtility::makeInstance(LanguageServiceFactory::class);
                     if ($configuration instanceof Convert2NewsConfiguration) {
                         $languageUid = $configuration->getSysLanguageUid();
-                        $siteLanguage = $site->getLanguageById($languageUid);
+                        try {
+                            $siteLanguage = $site->getLanguageById($languageUid);
+                        } catch (\InvalidArgumentException $e) {
+                            unset($e);
+                            $siteLanguage = null;
+                        }
                         if (null === $siteLanguage) {
                             $siteLanguage = $site->getDefaultLanguage();
                         }
@@ -201,15 +196,15 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
      * @param \BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration $configuration
      * @api Use this method to individualize your object
      */
-    protected function individualizeObjectByEvent($object, $event, $configuration)
+    protected function individualizeObjectByEvent($object, $event, $configuration): void
     {
-        $object->setType($configuration->getTxnewsType());
+        $object->setType((string)$configuration->getTxnewsType());
 
         $eventName = (string)$event->getName();
         $object->setTitle($eventName);
         $bodytext = $this->templateEngine->getFromTemplate($configuration, 'Bodytext', ['event' => $event]);
         // Replace multiple consecutive whitespaces with a single whitespace
-        $bodytext = preg_replace('/ {2,}/', ' ', $bodytext);
+        $bodytext = preg_replace('/ {2,}/', ' ', (string) $bodytext);
         $object->setBodytext($bodytext);
         $teaser = '';
         if (method_exists($event, 'getSubtitle')) {
@@ -234,7 +229,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
             && method_exists($object, 'getCeImportSource')) {
             $importSource = $object->getCeImportSource() ?? 'campus_events_connector';
             $object->setImportSource($importSource);
-            $object->setImportId($event->getUid());
+            $object->setImportId((string)$event->getUid());
         }
         if (method_exists($object, 'setIsEvent')) {
             $object->setIsEvent(true);
@@ -247,10 +242,8 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
             }
         }
 
-        if ((int) $configuration->getTxnewsType() === 2) {
-            if (empty($event->getShortDescription())) {
-                $object->setTeaser($this->html2text($event->getDescription()));
-            }
+        if (($configuration->getTxnewsType() === self::NEWS_TYPE_EXTERNAL) && empty($event->getShortDescription())) {
+            $object->setTeaser($this->html2text($event->getDescription()));
         }
 
         $this->addNewsMedia($object, $event);
@@ -365,7 +358,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
                 } else {
                     $existingFileUidList[] = $originalFileUid;
                 }
-            } catch (ResourceDoesNotExistException $e) {
+            } catch (ResourceDoesNotExistException) {
                 $fileReferences->detach($existingMedia);
                 $this->persistenceManager->remove($existingMedia);
             }

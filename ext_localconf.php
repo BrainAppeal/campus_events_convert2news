@@ -18,16 +18,7 @@ call_user_func(
     static function ($extKey) {
 
         $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['tx_campuseventsconnector']['postImport']['tx_campuseventsconvert2news'] = \BrainAppeal\CampusEventsConvert2News\Hook\PostImportHook::class;
-        $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['ext/install']['update']['importFieldNamesUpdateWizard'] = \BrainAppeal\CampusEventsConvert2News\Updates\ImportFieldNamesUpdateWizard::class;
 
-        // TODO: any updates needed here?
-        $versionInformation = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Information\Typo3Version::class);
-        if ($versionInformation->getMajorVersion() < 12) {
-            /** @var \TYPO3\CMS\Extbase\Object\Container\Container $objectRegistry */
-            // @extensionScannerIgnoreLine
-            $objectRegistry = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Extbase\Object\Container\Container::class);/** @phpstan-ignore-line */
-            $objectRegistry->registerImplementation(\BrainAppeal\CampusEventsConnector\Domain\Model\ConvertConfiguration::class, \BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration::class);/** @phpstan-ignore-line */
-        }
         // typo3-dev/fb05/typo3conf/ext/news/Documentation/DeveloperManual/ExtendNews/ProxyClassGenerator/Index.rst
         $GLOBALS['TYPO3_CONF_VARS']['EXT']['news']['classes']['Domain/Model/News'][] = $extKey;
     },

@@ -1,18 +1,20 @@
 <?php
+
 namespace BrainAppeal\CampusEventsConvert2News\Updates;
 
+use BrainAppeal\CampusEventsConnector\Service\UpdateService as BaseUpdateService;
+use BrainAppeal\CampusEventsConnector\Updates\ImportFieldNamesUpdateWizard as BaseImportFieldNamesUpdateWizard;
 use BrainAppeal\CampusEventsConvert2News\Service\UpdateService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
-use BrainAppeal\CampusEventsConnector\Updates\ImportFieldNamesUpdateWizard as BaseImportFieldNamesUpdateWizard;
 
 class ImportFieldNamesUpdateWizard extends BaseImportFieldNamesUpdateWizard
 {
     /**
-     * @return \BrainAppeal\CampusEventsConnector\Service\UpdateService
+     * @return BaseUpdateService
      */
-    protected function getUpdateService()
+    protected function getUpdateService(): BaseUpdateService
     {
-        if (null === $this->updateService) {
+        if ($this->updateService === null) {
             $this->updateService = GeneralUtility::makeInstance(UpdateService::class);
         }
         return $this->updateService;

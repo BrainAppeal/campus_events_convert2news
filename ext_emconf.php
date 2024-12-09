@@ -11,26 +11,24 @@
  * @link      https://www.campus-events.com/
  */
 
-/** @var string $_EXTKEY */
-$EM_CONF[$_EXTKEY] = [
+$EM_CONF['campus_events_convert2news'] = [
     'title' => 'CampusEvents Converter2News',
     'description' => '',
     'category' => 'be',
-    'author' => 'Joshua Billert',
+    'author' => 'Brain Appeal DEV Team',
     'author_company' => 'Brain Appeal GmbH',
     'author_email' => 'info@brain-appeal.com',
     'state' => 'stable',
-    'clearCacheOnLoad' => 1,
-    'version' => '4.0.3',
+    'version' => '5.0.0',
     'constraints' => [
         'depends' => [
-            'typo3' => '11.5.26-12.4.99',
-            'campus_events_connector' => '3.0.7-4.999.99',
-            'news' => '8.6.0-11.99.99',
+            'typo3' => '12.4.0-13.4.99',
+            'campus_events_connector' => '5.0.0-5.99.99',
+            'news' => '12.0.0-12.99.99',
         ],
         'conflicts' => [],
         'suggests' => [
-            'eventnews' => '>=5.0.0',
+            'eventnews' => '>=6.0.0',
         ],
     ],
 ];

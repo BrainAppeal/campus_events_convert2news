@@ -19,12 +19,12 @@ $EM_CONF['campus_events_convert2news'] = [
     'author_company' => 'Brain Appeal GmbH',
     'author_email' => 'info@brain-appeal.com',
     'state' => 'stable',
-    'version' => '5.0.0',
+    'version' => '5.1.0',
     'constraints' => [
         'depends' => [
             'typo3' => '12.4.0-13.4.99',
-            'campus_events_connector' => '5.0.0-5.99.99',
-            'news' => '12.0.0-12.99.99',
+            'campus_events_connector' => '5.2.0-5.99.99',
+            'news' => '12.0.0-14.99.99',
         ],
         'conflicts' => [],
         'suggests' => [

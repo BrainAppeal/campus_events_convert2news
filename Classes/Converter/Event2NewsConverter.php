@@ -1,4 +1,5 @@
 <?php
+
 /**
  * campus_events_convert2news comes with ABSOLUTELY NO WARRANTY
  * See the GNU GeneralPublic License for more details.
@@ -15,6 +16,7 @@ namespace BrainAppeal\CampusEventsConvert2News\Converter;
 
 use BrainAppeal\CampusEventsConnector\Converter\AbstractEventToObjectConverter;
 use BrainAppeal\CampusEventsConnector\Domain\Model\ConvertConfiguration;
+use BrainAppeal\CampusEventsConnector\Domain\Model\EventImage;
 use BrainAppeal\CampusEventsConnector\Domain\Repository\EventRepository;
 use BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration;
 use BrainAppeal\CampusEventsConvert2News\Domain\Repository\NewsRepository;
@@ -49,8 +51,8 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
         EventRepository $eventRepository,
         protected PersistenceManagerInterface $persistenceManager,
         NewsRepository $objectRepository,
-        private readonly TemplateEngine $templateEngine)
-    {
+        private readonly TemplateEngine $templateEngine
+    ) {
         parent::__construct($dataMapper, $eventRepository);
         $this->objectRepository = $objectRepository;
     }
@@ -70,7 +72,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     protected function setLanguageBasedOnConfiguration(ConvertConfiguration $configuration)
     {
         // Use labels for default language of current site; needed for news bodytext labels
-        if (0 < $targetPid = (int) $configuration->getPid()) {
+        if (0 < $targetPid = (int)$configuration->getPid()) {
             $siteMatcher = GeneralUtility::makeInstance(SiteMatcher::class);
             if (!isset($GLOBALS['BE_USER'])) {
                 Bootstrap::initializeBackendUser(CommandLineUserAuthentication::class);
@@ -90,7 +92,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
                             unset($e);
                             $siteLanguage = null;
                         }
-                        if (null === $siteLanguage) {
+                        if ($siteLanguage === null) {
                             $siteLanguage = $site->getDefaultLanguage();
                         }
                     } else {
@@ -151,7 +153,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     }
 
     /**
-     * Returns the uid of the original file for the given file reference, if the file exists
+     * Returns the uid of the original file for the given file reference if the file exists
      * @param FileReferenceModel $fileReference
      * @return int
      * @throws ResourceDoesNotExistException
@@ -165,7 +167,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
             return $originalFile->getUid();
         }
         throw new ResourceDoesNotExistException(
-            'No xfile found for given UID: "' . $originalFile->getUid() . '"',
+            'No file found for given UID: "' . $originalFile->getUid() . '"',
             1718106519
         );
     }
@@ -204,7 +206,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
         $object->setTitle($eventName);
         $bodytext = $this->templateEngine->getFromTemplate($configuration, 'Bodytext', ['event' => $event]);
         // Replace multiple consecutive whitespaces with a single whitespace
-        $bodytext = preg_replace('/ {2,}/', ' ', (string) $bodytext);
+        $bodytext = preg_replace('/ {2,}/', ' ', (string)$bodytext);
         $object->setBodytext($bodytext);
         $teaser = '';
         if (method_exists($event, 'getSubtitle')) {
@@ -250,7 +252,6 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
         $this->addNewsAttachments($object, $event);
     }
 
-
     /**
      * Add the event attachments to news attachments
      * @param \GeorgRinger\News\Domain\Model\News $object
@@ -261,27 +262,15 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     {
         /** @var FileReferenceModel[] $mapImportFileReferences */
         $mapImportFileReferences = [];
-        foreach ($event->getAttachments() as $attachment) {
-            /** @var FileReferenceModel $attachment */
+        /** @var \BrainAppeal\CampusEventsConnector\Domain\Model\EventAttachment $eventAttachment */
+        foreach ($event->getEventAttachments() as $eventAttachment) {
             try {
-                $originalFileUid = $this->getUidOfValidOriginalFile($attachment);
-                $mapImportFileReferences[$originalFileUid] = $attachment;
+                if ((($fileReference = $eventAttachment->getAttachmentFile()) instanceof FileReferenceModel)
+                    && $originalFileUid = $this->getUidOfValidOriginalFile($fileReference)) {
+                    $mapImportFileReferences[$originalFileUid] = $fileReference;
+                }
             } catch (ResourceDoesNotExistException $e) {
                 unset($e);
-            }
-        }
-        // New event model
-        if (method_exists($event, 'getEventAttachments')) {
-            /** @var \BrainAppeal\CampusEventsConnector\Domain\Model\EventAttachment $eventAttachment */
-            foreach ($event->getEventAttachments() as $eventAttachment) {
-                try {
-                    if ((($fileReference = $eventAttachment->getAttachmentFile()) instanceof FileReferenceModel)
-                        && $originalFileUid = $this->getUidOfValidOriginalFile($fileReference)) {
-                        $mapImportFileReferences[$originalFileUid] = $fileReference;
-                    }
-                } catch (ResourceDoesNotExistException $e) {
-                    unset($e);
-                }
             }
         }
         $mapImportFileUidList = array_keys($mapImportFileReferences);
@@ -298,33 +287,21 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
      * Add the event images to news media
      * @param \GeorgRinger\News\Domain\Model\News $object
      * @param \BrainAppeal\CampusEventsConnector\Domain\Model\Event $event
-     * @return void
      */
     protected function addNewsMedia($object, $event): void
     {
         /** @var FileReferenceModel[] $mapImportFileReferences */
         $mapImportFileReferences = [];
-        foreach ($event->getImages() as $image) {
-            /** @var FileReferenceModel $image */
+        // New event model
+        /** @var \BrainAppeal\CampusEventsConnector\Domain\Model\EventImage $eventImage */
+        foreach ($event->getEventImages() as $eventImage) {
             try {
-                $originalFileUid = $this->getUidOfValidOriginalFile($image);
-                $mapImportFileReferences[$originalFileUid] = $image;
+                if ((($fileReference = $eventImage->getImageFile()) instanceof FileReferenceModel)
+                    && $originalFileUid = $this->getUidOfValidOriginalFile($fileReference)) {
+                    $mapImportFileReferences[$originalFileUid] = $fileReference;
+                }
             } catch (ResourceDoesNotExistException $e) {
                 unset($e);
-            }
-        }
-        // New event model
-        if (method_exists($event, 'getEventImages')) {
-            /** @var \BrainAppeal\CampusEventsConnector\Domain\Model\EventImage $eventImage */
-            foreach ($event->getEventImages() as $eventImage) {
-                try {
-                    if ((($fileReference = $eventImage->getImageFile()) instanceof FileReferenceModel)
-                        && $originalFileUid = $this->getUidOfValidOriginalFile($fileReference)) {
-                        $mapImportFileReferences[$originalFileUid] = $fileReference;
-                    }
-                } catch (ResourceDoesNotExistException $e) {
-                    unset($e);
-                }
             }
         }
         $mapImportFileUidList = array_keys($mapImportFileReferences);
@@ -372,12 +349,12 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
      */
     protected function getAdditionDataHandlerValues($event): array
     {
-        $eventName = (string) $event->getName();
+        $eventName = (string)$event->getName();
         return [
             'title' => $eventName,
-            'teaser' => (string) $event->getShortDescription(),
-            'externalurl' => (string) $event->getUrl(),
-            'path_segment' => (string) $this->createSlugForName($eventName)
+            'teaser' => (string)$event->getShortDescription(),
+            'externalurl' => (string)$event->getUrl(),
+            'path_segment' => (string)$this->createSlugForName($eventName),
         ];
     }
 

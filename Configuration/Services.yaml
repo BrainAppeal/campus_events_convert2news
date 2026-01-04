@@ -13,3 +13,9 @@ services:
   BrainAppeal\CampusEventsConvert2News\Converter\Event2NewsConverter:
     public: true
     #shared: true
+
+  BrainAppeal\CampusEventsConvert2News\Command\ConvertCommand:
+    tags:
+      - name: 'console.command'
+        command: 'ce:convert:news'
+        description: 'Campus Events Converter2News: Convert event records to news'

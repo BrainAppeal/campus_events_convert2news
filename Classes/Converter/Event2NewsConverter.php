@@ -1,11 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * campus_events_convert2news comes with ABSOLUTELY NO WARRANTY
  * See the GNU GeneralPublic License for more details.
  * https://www.gnu.org/licenses/gpl-2.0
  *
- * Copyright (C) 2019 Brain Appeal GmbH
+ * Copyright (C) 2026 Brain Appeal GmbH
  *
  * @copyright 2019 Brain Appeal GmbH (www.brain-appeal.com)
  * @license   GPL-2 (www.gnu.org/licenses/gpl-2.0)
@@ -16,12 +18,17 @@ namespace BrainAppeal\CampusEventsConvert2News\Converter;
 
 use BrainAppeal\CampusEventsConnector\Converter\AbstractEventToObjectConverter;
 use BrainAppeal\CampusEventsConnector\Domain\Model\ConvertConfiguration;
+use BrainAppeal\CampusEventsConnector\Domain\Model\Event;
+use BrainAppeal\CampusEventsConnector\Domain\Model\EventAttachment;
 use BrainAppeal\CampusEventsConnector\Domain\Model\EventImage;
+use BrainAppeal\CampusEventsConnector\Domain\Model\ImportedModelInterface;
 use BrainAppeal\CampusEventsConnector\Domain\Repository\EventRepository;
 use BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration;
 use BrainAppeal\CampusEventsConvert2News\Domain\Repository\NewsRepository;
 use Doctrine\DBAL\Exception;
 use GeorgRinger\News\Domain\Model\FileReference as NewsFileReferenceAlias;
+use GeorgRinger\News\Domain\Model\News;
+use GeorgRinger\News\Service\SlugService;
 use TYPO3\CMS\Core\Authentication\CommandLineUserAuthentication;
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -35,7 +42,9 @@ use TYPO3\CMS\Core\Site\Entity\NullSite;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference as FileReferenceModel;
 use TYPO3\CMS\Extbase\Persistence\Generic\Mapper\DataMapper;
+use TYPO3\CMS\Extbase\Persistence\ObjectStorage;
 use TYPO3\CMS\Extbase\Persistence\PersistenceManagerInterface;
+use TYPO3\CMS\Extbase\Persistence\QueryResultInterface;
 
 class Event2NewsConverter extends AbstractEventToObjectConverter
 {
@@ -51,29 +60,37 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
         EventRepository $eventRepository,
         protected PersistenceManagerInterface $persistenceManager,
         NewsRepository $objectRepository,
-        private readonly TemplateEngine $templateEngine
+        private readonly TemplateEngine $templateEngine,
+        private readonly SiteMatcher $siteMatcher,
+        private readonly LanguageServiceFactory $languageServiceFactory,
+        private readonly ConnectionPool $connectionPool
     ) {
         parent::__construct($dataMapper, $eventRepository);
         $this->objectRepository = $objectRepository;
     }
 
+    protected function getTargetTable(): string
+    {
+        return 'tx_news_domain_model_news';
+    }
+
     /**
      * @param EventRepository $eventRepository
-     * @param \BrainAppeal\CampusEventsConnector\Domain\Model\ConvertConfiguration $configuration
-     * @return \BrainAppeal\CampusEventsConnector\Domain\Model\Event[]
+     * @param ConvertConfiguration $configuration
+     * @return Event[]|QueryResultInterface<int, Event>
      */
-    protected function getMatchingEventsByConfiguration(EventRepository $eventRepository, ConvertConfiguration $configuration)
+    protected function getMatchingEventsByConfiguration(EventRepository $eventRepository, ConvertConfiguration $configuration): array|QueryResultInterface
     {
-        // Disable PID restriction, because we want to load all events from ALL pages
+        // Disable PID restriction because we want to load all events from ALL pages
         // and then move the events to the configured page id
         return $eventRepository->findAllByConvertConfiguration($configuration, false);
     }
 
-    protected function setLanguageBasedOnConfiguration(ConvertConfiguration $configuration)
+    protected function setLanguageBasedOnConfiguration(ConvertConfiguration $configuration): void
     {
         // Use labels for default language of current site; needed for news bodytext labels
         if (0 < $targetPid = (int)$configuration->getPid()) {
-            $siteMatcher = GeneralUtility::makeInstance(SiteMatcher::class);
+            $siteMatcher = $this->siteMatcher;
             if (!isset($GLOBALS['BE_USER'])) {
                 Bootstrap::initializeBackendUser(CommandLineUserAuthentication::class);
                 Bootstrap::initializeBackendAuthentication();
@@ -83,7 +100,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
                 if (!($site instanceof NullSite)) {
 
                     /** @var LanguageServiceFactory $languageServiceFactory */
-                    $languageServiceFactory = GeneralUtility::makeInstance(LanguageServiceFactory::class);
+                    $languageServiceFactory = $this->languageServiceFactory;
                     if ($configuration instanceof Convert2NewsConfiguration) {
                         $languageUid = $configuration->getSysLanguageUid();
                         try {
@@ -114,12 +131,12 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     /**
      * @param ConvertConfiguration $configuration
      */
-    public function run($configuration)
+    public function run($configuration): void
     {
         $this->setLanguageBasedOnConfiguration($configuration);
         parent::run($configuration);
         /** @var ConnectionPool $connectionPool */
-        $connectionPool = GeneralUtility::makeInstance(ConnectionPool::class);
+        $connectionPool = $this->connectionPool;
         $connection = $connectionPool->getConnectionForTable('tx_news_domain_model_news');
         try {
             $connection->executeStatement('UPDATE tx_news_domain_model_news n, tx_news_domain_model_news o
@@ -142,7 +159,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
      */
     private function getFalObject(FileReferenceModel $fileReference): ?NewsFileReferenceAlias
     {
-        if ($originalFileUid = $this->getUidOfValidOriginalFile($fileReference)) {
+        if (($originalFileUid = $this->getUidOfValidOriginalFile($fileReference)) !== 0) {
             /** @var NewsFileReferenceAlias $media */
             $media = GeneralUtility::makeInstance(NewsFileReferenceAlias::class);
             $media->setFileUid($originalFileUid);
@@ -162,8 +179,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     {
         $originalFile = $fileReference->getOriginalResource()->getOriginalFile();
         if (!$originalFile->isMissing()
-            && (null !== $storage = $originalFile->getStorage())
-            && $storage->hasFile($originalFile->getIdentifier())) {
+            && $originalFile->getStorage()->hasFile($originalFile->getIdentifier())) {
             return $originalFile->getUid();
         }
         throw new ResourceDoesNotExistException(
@@ -184,21 +200,36 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     /**
      * Returns true, if the event can be converted to the target object model; Override this function in custom
      * converter to support skipping import of single events
-     * @param \BrainAppeal\CampusEventsConnector\Domain\Model\Event $event
+     * @param Event $event
      * @return bool
      */
-    protected function isConversionPossible($event)
+    protected function isConversionPossible(Event $event): bool
     {
         return !empty($event->getUrl());
     }
 
     /**
-     * @param \GeorgRinger\News\Domain\Model\News $object
-     * @param \BrainAppeal\CampusEventsConnector\Domain\Model\Event $event
-     * @param \BrainAppeal\CampusEventsConvert2News\Domain\Model\Convert2NewsConfiguration $configuration
+     * @param ImportedModelInterface $object
+     * @param Event $event
+     * @param ConvertConfiguration $configuration
      * @api Use this method to individualize your object
      */
-    protected function individualizeObjectByEvent($object, $event, $configuration): void
+    protected function individualizeObjectByEvent(ImportedModelInterface $object, Event $event, ConvertConfiguration $configuration): void
+    {
+        if ($object instanceof News && $configuration instanceof Convert2NewsConfiguration) {
+            $this->individualizeNewsObjectByEvent($object, $event, $configuration);
+        }
+    }
+
+    /**
+     * Customizes a News object based on the details of a given Event and configuration settings.
+     *
+     * @param News $object The News object to be individualized.
+     * @param Event $event The Event object containing data to populate the News object.
+     * @param Convert2NewsConfiguration $configuration Configuration providing mapping details for the conversion.
+     * @return void
+     */
+    protected function individualizeNewsObjectByEvent(News $object, Event $event, Convert2NewsConfiguration $configuration): void
     {
         $object->setType((string)$configuration->getTxnewsType());
 
@@ -208,11 +239,8 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
         // Replace multiple consecutive whitespaces with a single whitespace
         $bodytext = preg_replace('/ {2,}/', ' ', (string)$bodytext);
         $object->setBodytext($bodytext);
-        $teaser = '';
-        if (method_exists($event, 'getSubtitle')) {
-            $teaser = $event->getSubtitle();
-        }
-        if (empty($teaser)) {
+        $teaser = trim((string)$event->getSubtitle());
+        if ($teaser === '') {
             $teaser = $event->getShortDescription();
         }
         $object->setTeaser($teaser);
@@ -226,9 +254,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
             && $eventEnd->getTimestamp() <= 2147483647) {
             $object->setEventEnd($eventEnd);
         }
-        if (method_exists($object, 'setImportSource')
-            && method_exists($object, 'setImportId')
-            && method_exists($object, 'getCeImportSource')) {
+        if (method_exists($object, 'getCeImportSource')) {
             $importSource = $object->getCeImportSource() ?? 'campus_events_connector';
             $object->setImportSource($importSource);
             $object->setImportId((string)$event->getUid());
@@ -237,11 +263,9 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
             $object->setIsEvent(true);
         }
 
-        if (method_exists($object, 'setPathSegment')) {
-            $slug = $this->createSlugForName($eventName);
-            if ($slug) {
-                $object->setPathSegment($slug);
-            }
+        $slug = $this->createSlugForName($eventName);
+        if ($slug) {
+            $object->setPathSegment($slug);
         }
 
         if (($configuration->getTxnewsType() === self::NEWS_TYPE_EXTERNAL) && empty($event->getShortDescription())) {
@@ -254,15 +278,15 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
 
     /**
      * Add the event attachments to news attachments
-     * @param \GeorgRinger\News\Domain\Model\News $object
-     * @param \BrainAppeal\CampusEventsConnector\Domain\Model\Event $event
+     * @param News $object
+     * @param Event $event
      * @retur void
      */
     protected function addNewsAttachments($object, $event): void
     {
         /** @var FileReferenceModel[] $mapImportFileReferences */
         $mapImportFileReferences = [];
-        /** @var \BrainAppeal\CampusEventsConnector\Domain\Model\EventAttachment $eventAttachment */
+        /** @var EventAttachment $eventAttachment */
         foreach ($event->getEventAttachments() as $eventAttachment) {
             try {
                 if ((($fileReference = $eventAttachment->getAttachmentFile()) instanceof FileReferenceModel)
@@ -277,7 +301,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
         $existingFileUids = $this->processExistingFileReferences($object->getFalRelatedFiles(), $mapImportFileUidList);
         foreach ($mapImportFileReferences as $origFileUid => $fileReference) {
             if (!in_array($origFileUid, $existingFileUids, false)
-                && null !== $falReferenceModel = $this->getFalObject($fileReference)) {
+                && ($falReferenceModel = $this->getFalObject($fileReference)) instanceof NewsFileReferenceAlias) {
                 $object->addFalRelatedFile($falReferenceModel);
             }
         }
@@ -285,15 +309,15 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
 
     /**
      * Add the event images to news media
-     * @param \GeorgRinger\News\Domain\Model\News $object
-     * @param \BrainAppeal\CampusEventsConnector\Domain\Model\Event $event
+     * @param News $object
+     * @param Event $event
      */
     protected function addNewsMedia($object, $event): void
     {
         /** @var FileReferenceModel[] $mapImportFileReferences */
         $mapImportFileReferences = [];
         // New event model
-        /** @var \BrainAppeal\CampusEventsConnector\Domain\Model\EventImage $eventImage */
+        /** @var EventImage $eventImage */
         foreach ($event->getEventImages() as $eventImage) {
             try {
                 if ((($fileReference = $eventImage->getImageFile()) instanceof FileReferenceModel)
@@ -308,7 +332,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
         $existingFileUids = $this->processExistingFileReferences($object->getFalMedia(), $mapImportFileUidList);
         foreach ($mapImportFileReferences as $origFileUid => $fileReference) {
             if (!in_array($origFileUid, $existingFileUids, false)
-                && null !== $falReferenceModel = $this->getFalObject($fileReference)) {
+                && ($falReferenceModel = $this->getFalObject($fileReference)) instanceof NewsFileReferenceAlias) {
                 $object->addFalMedia($falReferenceModel);
             }
         }
@@ -317,7 +341,7 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     /**
      * Returns the list of file uid's that already are referenced by the current object
      * Additionally filters out duplicates (that were already stored before)
-     * @param \TYPO3\CMS\Extbase\Persistence\ObjectStorage|FileReferenceModel[] $fileReferences
+     * @param ObjectStorage|FileReferenceModel[] $fileReferences
      * @param array|int[] $mapImportFileUidList File UID list of import file references
      * @return array|int[] $existingFileUidList
      */
@@ -344,10 +368,10 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     }
 
     /**
-     * @param \BrainAppeal\CampusEventsConnector\Domain\Model\Event $event
+     * @param Event $event
      * @return array<string, mixed>
      */
-    protected function getAdditionDataHandlerValues($event): array
+    protected function getAdditionDataHandlerValues(Event $event): array
     {
         $eventName = (string)$event->getName();
         return [
@@ -366,15 +390,15 @@ class Event2NewsConverter extends AbstractEventToObjectConverter
     private function createSlugForName(string $eventName): ?string
     {
         $slug = null;
-        if ($eventName) {
+        if ($eventName !== '') {
             if (class_exists(SlugHelper::class)) {
                 $slugConfig = $GLOBALS['TCA']['tx_news_domain_model_news']['columns']['path_segment']['config'];
                 /** @var SlugHelper $slugService */
                 $slugService = GeneralUtility::makeInstance(SlugHelper::class, 'tx_news_domain_model_news', 'path_segment', $slugConfig);
                 $slug = $slugService->sanitize($eventName);
-            } elseif (class_exists(\GeorgRinger\News\Service\SlugService::class)) {
-                /** @var \GeorgRinger\News\Service\SlugService $slugService */
-                $slugService = GeneralUtility::makeInstance(\GeorgRinger\News\Service\SlugService::class);
+            } elseif (class_exists(SlugService::class)) {
+                /** @var SlugService $slugService */
+                $slugService = GeneralUtility::makeInstance(SlugService::class);
                 if (method_exists($slugService, 'generateSlug')) {
                     $slug = $slugService->generateSlug($eventName);
                 }

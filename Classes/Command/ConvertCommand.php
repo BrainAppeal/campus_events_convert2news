@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace BrainAppeal\CampusEventsConvert2News\Command;
 
-use BrainAppeal\CampusEventsConnector\Importer\PostImportHookInterface;
-use BrainAppeal\CampusEventsConvert2News\Hook\PostImportHook;
+use BrainAppeal\CampusEventsConvert2News\Converter\Event2NewsConverter;
+use BrainAppeal\CampusEventsConvert2News\Domain\Repository\Convert2NewsConfigurationRepository;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Authentication\CommandLineUserAuthentication;
 use TYPO3\CMS\Core\Core\Bootstrap;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
@@ -20,16 +21,22 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class ConvertCommand extends Command
 {
+    public function __construct(
+        private readonly Event2NewsConverter $converter,
+        private readonly Convert2NewsConfigurationRepository $configurationRepository
+    ) {
+        parent::__construct();
+    }
     /**
-     * Configure the command by defining the name, options and arguments
+     * Configure the command by defining the name, options, and arguments
      */
-    protected function configure()
+    protected function configure(): void
     {
         $this->addArgument(
-                'pid',
-                InputArgument::REQUIRED,
-                'The target page id for the imported events'
-            );
+            'pid',
+            InputArgument::REQUIRED,
+            'The target page id for the imported events'
+        );
     }
     /**
      * @param InputInterface $input
@@ -38,19 +45,19 @@ class ConvertCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        Bootstrap::initializeBackendUser(CommandLineUserAuthentication::class);
         Bootstrap::initializeBackendAuthentication();
         $targetPid = (int)$input->getArgument('pid');
         $this->initializeExtbaseEnvironment($targetPid);
-        $converter = GeneralUtility::makeInstance(PostImportHook::class);
-        $converter->postImport($targetPid);
-
+        foreach ($this->configurationRepository->findActiveByPid($targetPid) as $config) {
+            $this->converter->run($config);
+        }
         return Command::SUCCESS;
     }
 
     /**
      * Since TYPO3 13.4 we need the request object to initialize the configuration manager for Extbase
      * @param int $targetPid
-     * @return void
      */
     protected function initializeExtbaseEnvironment(int $targetPid): void
     {

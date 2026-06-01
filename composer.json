@@ -1,39 +1,40 @@
 {
-    "name": "brainappeal/campus_events_convert2news",
-    "type": "typo3-cms-extension",
-    "description": "Manage events, appointments, registrations and participants centrally with Campus Events. To use this extension, a Campus Events installation or access to the API is required. For more information see https://www.campus-events.com",
-    "license": [
-        "GPL-2.0-only"
-    ],
-     "keywords": [
-        "TYPO3",
-        "extension",
-        "event",
-        "events",
-        "veranstaltung",
-        "eventtool"
-     ],
-    "homepage": "https://www.campus-events.com/",
-    "authors": [
-        {
-            "name": "Brain Appeal GmbH",
-            "email": "info@brain-appeal.com",
-            "homepage": "https://www.brain-appeal.com"
-        }
-    ],
-    "require": {
-        "typo3/cms-core": "^12.4 || ^13.4",
-        "brainappeal/campus_events_connector": "^5.2",
-        "georgringer/news": "^12.0.0 || ^13.0.0 || ^14.0.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "BrainAppeal\\CampusEventsConvert2News\\": "Classes"
-        }
-    },
-    "extra": {
-        "typo3/cms": {
-            "extension-key": "campus_events_convert2news"
-        }
+  "name": "brainappeal/campus_events_convert2news",
+  "type": "typo3-cms-extension",
+  "description": "Campus Events Converter2News - Manage events, appointments, registrations and participants centrally with Campus Events. To use this extension, a Campus Events installation or access to the API is required. For more information see https://www.campus-events.com",
+  "license": [
+    "GPL-2.0-only"
+  ],
+  "keywords": [
+    "TYPO3",
+    "extension",
+    "event",
+    "events",
+    "veranstaltung",
+    "eventtool"
+  ],
+  "homepage": "https://www.campus-events.com/",
+  "authors": [
+    {
+      "name": "Brain Appeal GmbH",
+      "email": "info@brain-appeal.com",
+      "homepage": "https://www.brain-appeal.com"
     }
+  ],
+  "require": {
+    "typo3/cms-core": "^13.4 || ^14.3",
+    "brainappeal/campus_events_connector": "^6.0 || @dev",
+    "georgringer/news": "^14.0.0 || ^15.0.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "BrainAppeal\\CampusEventsConvert2News\\": "Classes"
+    }
+  },
+  "extra": {
+    "typo3/cms": {
+      "extension-key": "campus_events_convert2news",
+      "version": "6.0.0"
+    }
+  }
 }
